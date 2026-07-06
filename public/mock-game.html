@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mock Game</title>
+    <style>
+      body {
+        margin: 0;
+        color: #f8f1df;
+        background: #161818;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+      }
+
+      main {
+        display: grid;
+        gap: 18px;
+        min-height: 100vh;
+        padding: 28px;
+        align-content: start;
+      }
+
+      h1 {
+        margin: 0;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      button {
+        padding: 10px 14px;
+        border: 1px solid #d7bc6d;
+        border-radius: 8px;
+        color: #f8f1df;
+        background: #38443c;
+        cursor: pointer;
+      }
+
+      pre {
+        overflow: auto;
+        min-height: 220px;
+        padding: 16px;
+        border: 1px solid #4d544e;
+        border-radius: 8px;
+        background: #0e1010;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div>
+        <h1>Mock Game</h1>
+        <p>Portal SDK integration target.</p>
+      </div>
+      <div class="actions">
+        <button id="token">auth.getToken</button>
+        <button id="store">save.store</button>
+        <button id="load">save.load</button>
+        <button id="account">account.set/get</button>
+        <button id="event">realtime.emit</button>
+      </div>
+      <pre id="log">Ready.</pre>
+    </main>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const gameId = params.get("gameId") || "lords-daughter";
+      const pending = new Map();
+      const log = document.getElementById("log");
+
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        if (!message || message.type !== "gamevault:sdk-response") return;
+        const resolve = pending.get(message.requestId);
+        if (resolve) {
+          pending.delete(message.requestId);
+          resolve(message);
+        }
+      });
+
+      function sdk(method, payload) {
+        const requestId = crypto.randomUUID();
+        const target = window.opener || window.parent;
+        target.postMessage(
+          { type: "gamevault:sdk-request", requestId, gameId, method, payload },
+          "*"
+        );
+        return new Promise((resolve, reject) => {
+          pending.set(requestId, (message) => {
+            if (message.ok) resolve(message.result);
+            else reject(new Error(message.error || "SDK request failed"));
+          });
+          setTimeout(() => reject(new Error("SDK request timed out")), 5000);
+        });
+      }
+
+      async function run(label, fn) {
+        try {
+          const result = await fn();
+          log.textContent = `${label}\n\n${JSON.stringify(result, null, 2)}`;
+        } catch (error) {
+          log.textContent = `${label} failed\n\n${error.message}`;
+        }
+      }
+
+      document.getElementById("token").onclick = () => run("auth.getToken", () => sdk("auth.getToken"));
+      document.getElementById("store").onclick = () =>
+        run("save.store", () =>
+          sdk("save.store", {
+            slot: 0,
+            schema_version: 1,
+            data: { gold: Math.floor(Math.random() * 1000), saved_at: new Date().toISOString() }
+          })
+        );
+      document.getElementById("load").onclick = () => run("save.load", () => sdk("save.load", { slot: 0 }));
+      document.getElementById("account").onclick = async () => {
+        await sdk("account.set", {
+          key: "outer_god_front_club",
+          schema_version: 1,
+          value: true
+        });
+        return run("account.get", () => sdk("account.get"));
+      };
+      document.getElementById("event").onclick = () =>
+        run("realtime.emit", () =>
+          sdk("realtime.emit", { event: "achievement.unlocked", payload: { id: "mock_start" } })
+        );
+    </script>
+  </body>
+</html>

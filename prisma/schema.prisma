@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  displayName  String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  saves        GameSave[]
+  accountData  AccountData[]
+  events       RealtimeEvent[]
+}
+
+model Game {
+  id          String        @id
+  title       String
+  description String?
+  iframeUrl   String
+  launchUrl   String?
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  saves       GameSave[]
+  events      RealtimeEvent[]
+}
+
+model GameSave {
+  id            String   @id @default(cuid())
+  userId        String
+  gameId        String
+  slot          Int
+  schemaVersion Int
+  data          Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  game          Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameId, slot])
+}
+
+model AccountData {
+  id            String   @id @default(cuid())
+  userId        String
+  key           String
+  schemaVersion Int
+  value         Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+}
+
+model RealtimeEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  gameId    String?
+  event     String
+  payload   Json
+  createdAt DateTime @default(now())
+  game      Game?    @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, event])
+}
