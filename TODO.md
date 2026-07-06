@@ -22,10 +22,15 @@ Current implementation note:
 
 ## Priority 3: Dockerize the project
 
-- Add a Dockerfile for the portal app.
-- Add a docker-compose entry for local development and the mock game.
-- Keep Windows PowerShell usage documented, but treat Docker as the deployment path.
-- The current machine does not run Docker, so this step should be verified by build/config review first.
+- [x] Add a Dockerfile for the portal app.
+- [x] Add a docker-compose entry for local development and the mock game.
+- [x] Keep Windows PowerShell usage documented, but treat Docker as the deployment path.
+- [x] The current machine does not run Docker, so this step should be verified by build/config review first.
+
+Current implementation note:
+
+- The Docker image is a single production portal container that builds the client and server together.
+- The compose file publishes the portal on `http://localhost:3001` and stores SQLite data in a named volume.
 
 ## Priority 4: Expand the portal contract
 

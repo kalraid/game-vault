@@ -1,0 +1,19 @@
+services:
+  portal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: file:/data/dev.db
+      PORT: "3001"
+      CLIENT_ORIGIN: http://localhost:5175
+    ports:
+      - "3001:3001"
+    volumes:
+      - portal-data:/data
+    restart: unless-stopped
+
+volumes:
+  portal-data:

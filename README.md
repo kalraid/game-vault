@@ -75,6 +75,23 @@ Default local ports:
 
 `npm run dev` now performs a local DB bootstrap first (`prisma generate` + `prisma db push`) so the portal starts cleanly on a fresh checkout.
 
+## Docker
+
+The deployment path is Docker-based. The container image builds the React client and Express server together, then starts the portal on port `3001`.
+
+Local compose flow:
+
+```bash
+docker compose up --build
+```
+
+This exposes:
+
+- portal UI and API: `http://localhost:3001`
+- mock game: `http://localhost:3001/mock-game.html?gameId=lords-daughter`
+
+SQLite data is stored in the named Docker volume `portal-data`.
+
 ## Scripts
 
 - `npm run dev` - start client and server
