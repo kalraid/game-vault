@@ -43,6 +43,7 @@ Current implementation note:
 - [x] Align the realtime flow with the eventual external game module contract.
 - [x] Remove temporary assumptions once the real game module exists.
 - [x] Add a reusable sample game module starter.
+- [x] Add copy instructions for the sample game module.
 
 Current implementation note:
 
@@ -51,6 +52,7 @@ Current implementation note:
 - Realtime fanout is now centralized in `server/realtime.ts` and covered by unit tests.
 - The mock game now demonstrates additive realtime subscriptions across multiple events.
 - `sample-game/` is a starter module that can be copied into the separate game repository.
+- `sample-game/README.md` describes the files to copy and the expected portal contract behavior.
 
 ## Notes
 

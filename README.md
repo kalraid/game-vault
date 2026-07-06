@@ -101,6 +101,7 @@ SQLite data is stored in the named Docker volume `portal-data`.
 The built-in registry starts with the mock `lords-daughter` entry. To add more modules without changing code, provide `GAMES_JSON` as a JSON array in `.env` using the same shape as [games.example.json](./games.example.json).
 
 If you want a starting point for the separate game repository, use [sample-game/index.html](./sample-game/index.html) and [sample-game/main.ts](./sample-game/main.ts) as the reference module.
+The sample module has its own copy guide at [sample-game/README.md](./sample-game/README.md).
 
 ## Scripts
 
