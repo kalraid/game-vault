@@ -1,0 +1,16 @@
+[
+  {
+    "id": "lords-daughter",
+    "title": "Lord's Daughter",
+    "description": "Mock integration target for the GameVault portal SDK.",
+    "iframeUrl": "/mock-game.html?gameId=lords-daughter",
+    "launchUrl": "/mock-game.html?gameId=lords-daughter"
+  },
+  {
+    "id": "forest-keeper",
+    "title": "Forest Keeper",
+    "description": "Example slot for a second game module.",
+    "iframeUrl": "https://example.com/forest-keeper.html",
+    "launchUrl": "https://example.com/forest-keeper.html"
+  }
+]

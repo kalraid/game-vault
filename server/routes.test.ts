@@ -5,7 +5,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 const mocks = vi.hoisted(() => {
   const prisma = {
     game: {
-      findMany: vi.fn(),
       upsert: vi.fn(),
     },
     gameSave: {
@@ -76,11 +75,6 @@ describe("portal API contract", () => {
   });
 
   it("serves health and game listing", async () => {
-    mocks.prisma.game.findMany.mockResolvedValue([
-      { id: "beta", title: "Beta" },
-      { id: "alpha", title: "Alpha" },
-    ]);
-
     const health = await fetch(`${baseUrl}/api/health`);
     expect(health.status).toBe(200);
     await expect(health.json()).resolves.toEqual({ ok: true });
@@ -88,13 +82,14 @@ describe("portal API contract", () => {
     const games = await fetch(`${baseUrl}/api/games`);
     expect(games.status).toBe(200);
     await expect(games.json()).resolves.toEqual([
-      { id: "beta", title: "Beta" },
-      { id: "alpha", title: "Alpha" },
+      {
+        id: "lords-daughter",
+        title: "Lord's Daughter",
+        description: "Mock integration target for the GameVault portal SDK.",
+        iframeUrl: "/mock-game.html?gameId=lords-daughter",
+        launchUrl: "/mock-game.html?gameId=lords-daughter",
+      },
     ]);
-    expect(mocks.prisma.game.findMany).toHaveBeenCalledWith({
-      where: { active: true },
-      orderBy: { title: "asc" },
-    });
   });
 
   it("seeds the mock game and exposes auth token", async () => {
@@ -108,10 +103,15 @@ describe("portal API contract", () => {
 
     const seed = await fetch(`${baseUrl}/api/games/seed`, { method: "POST" });
     expect(seed.status).toBe(200);
-    await expect(seed.json()).resolves.toMatchObject({
-      id: "lords-daughter",
-      title: "Lord's Daughter",
-    });
+    await expect(seed.json()).resolves.toEqual([
+      {
+        id: "lords-daughter",
+        title: "Lord's Daughter",
+        description: "Mock integration target for the GameVault portal SDK.",
+        iframeUrl: "/mock-game.html?gameId=lords-daughter",
+        launchUrl: "/mock-game.html?gameId=lords-daughter",
+      },
+    ]);
     expect(mocks.prisma.game.upsert).toHaveBeenCalledWith({
       where: { id: "lords-daughter" },
       update: expect.objectContaining({

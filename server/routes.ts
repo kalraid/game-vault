@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "./db.js";
 import { requireUser } from "./auth.js";
+import { getGame, listGames } from "./games.js";
 
 const router = Router();
 
@@ -26,31 +27,25 @@ router.get("/health", (_req, res) => {
 });
 
 router.get("/games", async (_req, res) => {
-  const games = await prisma.game.findMany({
-    where: { active: true },
-    orderBy: { title: "asc" }
-  });
-  res.json(games);
+  res.json(listGames());
 });
 
 router.post("/games/seed", async (_req, res) => {
-  const game = await prisma.game.upsert({
-    where: { id: "lords-daughter" },
-    update: {
-      title: "Lord's Daughter",
-      description: "Mock integration target for the GameVault portal SDK.",
-      iframeUrl: "/mock-game.html?gameId=lords-daughter",
-      launchUrl: "/mock-game.html?gameId=lords-daughter"
-    },
-    create: {
-      id: "lords-daughter",
-      title: "Lord's Daughter",
-      description: "Mock integration target for the GameVault portal SDK.",
-      iframeUrl: "/mock-game.html?gameId=lords-daughter",
-      launchUrl: "/mock-game.html?gameId=lords-daughter"
+  const seeded: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    iframeUrl: string;
+    launchUrl: string | null;
+    active: boolean;
+  }> = [];
+  for (const game of listGames()) {
+    const record = await upsertGameRecord(game.id);
+    if (record) {
+      seeded.push(record);
     }
-  });
-  res.json(game);
+  }
+  res.json(seeded);
 });
 
 router.use(requireUser);
@@ -63,6 +58,11 @@ router.get("/auth/token", (req, res) => {
 });
 
 router.get("/games/:gameId/save/:slot", async (req, res) => {
+  const game = await ensureGameRecord(req.params.gameId);
+  if (!game) {
+    res.status(400).json({ error: "unknown game" });
+    return;
+  }
   const slot = Number(req.params.slot);
   if (!Number.isInteger(slot)) {
     res.status(400).json({ error: "slot must be an integer" });
@@ -83,13 +83,17 @@ router.get("/games/:gameId/save/:slot", async (req, res) => {
 });
 
 router.put("/games/:gameId/save", async (req, res) => {
+  const game = await ensureGameRecord(req.params.gameId);
+  if (!game) {
+    res.status(400).json({ error: "unknown game" });
+    return;
+  }
   const parsed = saveStoreSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.flatten() });
     return;
   }
 
-  const game = await ensureGame(req.params.gameId);
   const save = await prisma.gameSave.upsert({
     where: {
       userId_gameId_slot: {
@@ -160,13 +164,17 @@ router.put("/account", async (req, res) => {
 });
 
 router.post("/games/:gameId/realtime", async (req, res) => {
+  const game = await ensureGameRecord(req.params.gameId);
+  if (!game) {
+    res.status(400).json({ error: "unknown game" });
+    return;
+  }
   const parsed = realtimeEmitSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.flatten() });
     return;
   }
 
-  await ensureGame(req.params.gameId);
   const event = await prisma.realtimeEvent.create({
     data: {
       userId: req.user!.id,
@@ -185,14 +193,34 @@ router.post("/games/:gameId/realtime", async (req, res) => {
 });
 
 async function ensureGame(gameId: string) {
+  const game = getGame(gameId);
+  if (!game) return null;
+  return upsertGameRecord(gameId);
+}
+
+async function ensureGameRecord(gameId: string) {
+  return ensureGame(gameId);
+}
+
+async function upsertGameRecord(gameId: string) {
+  const game = getGame(gameId);
+  if (!game) return null;
   return prisma.game.upsert({
-    where: { id: gameId },
-    update: {},
+    where: { id: game.id },
+    update: {
+      title: game.title,
+      description: game.description ?? null,
+      iframeUrl: game.iframeUrl,
+      launchUrl: game.launchUrl ?? null,
+      active: game.active ?? true
+    },
     create: {
-      id: gameId,
-      title: gameId,
-      iframeUrl: `/mock-game.html?gameId=${encodeURIComponent(gameId)}`,
-      launchUrl: `/mock-game.html?gameId=${encodeURIComponent(gameId)}`
+      id: game.id,
+      title: game.title,
+      description: game.description ?? null,
+      iframeUrl: game.iframeUrl,
+      launchUrl: game.launchUrl ?? null,
+      active: game.active ?? true
     }
   });
 }

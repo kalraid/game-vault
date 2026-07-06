@@ -35,13 +35,14 @@ Current implementation note:
 ## Priority 4: Expand the portal contract
 
 - [x] Document the external game-module contract.
+- [x] Expand the game registry with a configurable JSON override.
 - Align the realtime flow with the eventual external game module contract.
-- Expand the game registry as more game modules are added.
 - Remove temporary assumptions once the real game module exists.
 
 Current implementation note:
 
 - The integration guide now lives in `GAME_MODULE.md` and describes the message protocol the other repository should implement.
+- The registry can now be expanded with `GAMES_JSON` without editing code.
 
 ## Notes
 

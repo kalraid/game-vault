@@ -17,6 +17,7 @@ This repository follows the `game-vault` direction and uses a browser-game porta
 - `public/mock-game.html` - local mock game used to exercise the portal contract
 - `prisma/` - Prisma schema and migrations
 - `GAME_MODULE.md` - contract guide for the external game module repository
+- `games.example.json` - sample registry override for extra game modules
 
 ## Current stack
 
@@ -93,6 +94,10 @@ This exposes:
 
 SQLite data is stored in the named Docker volume `portal-data`.
 
+## Game registry
+
+The built-in registry starts with the mock `lords-daughter` entry. To add more modules without changing code, provide `GAMES_JSON` as a JSON array in `.env` using the same shape as [games.example.json](./games.example.json).
+
 ## Scripts
 
 - `npm run dev` - start client and server
@@ -116,4 +121,5 @@ See [TODO.md](./TODO.md) for the current implementation backlog and order.
 - Add tests for the portal API and SDK bridge.
 - Tighten realtime behavior if the game-side contract changes.
 - Expand the game registry and seed data as more games are added.
+- Add new registry entries through `GAMES_JSON` when a new external module is ready.
 - Keep the README and ADR aligned with any future contract changes.
