@@ -116,15 +116,12 @@ The sample module has its own copy guide at [sample-game/README.md](./sample-gam
 - Game list, auth, save storage, account storage, and realtime event transport are present.
 - The mock game can exercise the portal SDK in both iframe and window launch modes and shows live state for the contract calls.
 - `realtime.subscribe` is implemented as a basic event subscription bridge, supports multiple additive subscriptions, and realtime fanout is centralized in `server/realtime.ts`.
-- Automated tests are not yet present in this checkout.
+- Automated tests cover the portal contract, the game registry, the realtime fanout helper, the mock game wiring, and the sample game module.
 - The external game-module contract is documented in [GAME_MODULE.md](./GAME_MODULE.md).
+- The reusable sample game module lives in [sample-game/](./sample-game/).
 
 See [TODO.md](./TODO.md) for the current implementation backlog and order.
 
 ## Remaining work
 
-- Add tests for the portal API and SDK bridge.
-- Tighten realtime behavior if the game-side contract changes.
-- Expand the game registry and seed data as more games are added.
-- Add new registry entries through `GAMES_JSON` when a new external module is ready.
-- Keep the README and ADR aligned with any future contract changes.
+- Keep the README and ADR aligned with future contract changes.
