@@ -64,7 +64,7 @@ The external game module should:
 - request a token after it boots
 - use `save.load(slot)` and `save.store(slot, data)` for slot-based save data
 - use `account.get()` and `account.set(key, value)` for account-wide data
-- call `realtime.subscribe` for events it cares about
+- call `realtime.subscribe` for each event it cares about
 - call `realtime.emit` when it needs to publish a portal-visible event
 
 ## Portal assumptions the game can rely on
@@ -74,6 +74,7 @@ The external game module should:
 - `realtime.subscribe` is currently event-name based.
 - `realtime.emit` will be persisted by the portal and forwarded back to subscribers in the current user room.
 - The portal mock game is intentionally temporary and exists only to validate this contract.
+- Multiple `realtime.subscribe` calls are additive for the current game instance.
 
 ## What the game must not assume
 

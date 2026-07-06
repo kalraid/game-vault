@@ -84,6 +84,20 @@
         font-size: 13px;
       }
 
+      .list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid #465d53;
+        background: #1b2220;
+        font-size: 12px;
+      }
+
       .actions {
         display: flex;
         flex-wrap: wrap;
@@ -144,6 +158,12 @@
             <span class="label">Realtime</span>
             <div class="value" id="realtimeState">no events received</div>
           </div>
+          <div class="field">
+            <span class="label">Subscriptions</span>
+            <div class="list" id="subscriptionState">
+              <span class="chip">none</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -152,8 +172,9 @@
         <button id="store">save.store</button>
         <button id="load">save.load</button>
         <button id="account">account.set/get</button>
-        <button id="subscribe">realtime.subscribe</button>
-        <button id="event">realtime.emit</button>
+        <button id="subscribe">subscribe all</button>
+        <button id="event">emit achievement</button>
+        <button id="event2">emit progress</button>
         <button id="clear">clear log</button>
       </div>
 
@@ -169,7 +190,9 @@
       const saveState = document.getElementById("saveState");
       const accountState = document.getElementById("accountState");
       const realtimeState = document.getElementById("realtimeState");
+      const subscriptionState = document.getElementById("subscriptionState");
       const connectionState = document.getElementById("connectionState");
+      const subscriptions = new Set();
 
       function logLine(msg) {
         const line = document.createElement("div");
@@ -179,6 +202,20 @@
 
       function setText(el, value) {
         el.textContent = value;
+      }
+
+      function renderSubscriptions() {
+        subscriptionState.innerHTML = "";
+        if (subscriptions.size === 0) {
+          subscriptionState.innerHTML = '<span class="chip">none</span>';
+          return;
+        }
+        for (const name of subscriptions) {
+          const chip = document.createElement("span");
+          chip.className = "chip";
+          chip.textContent = name;
+          subscriptionState.appendChild(chip);
+        }
       }
 
       window.addEventListener("message", (event) => {
@@ -197,6 +234,8 @@
         if (message.type === "gamevault:realtime-event") {
           setText(realtimeState, `${message.event}\n${JSON.stringify(message.payload, null, 2)}`);
           logLine(`realtime event: ${message.event}`);
+          subscriptions.add(message.event);
+          renderSubscriptions();
         }
       });
 
@@ -267,10 +306,13 @@
       };
 
       document.getElementById("subscribe").onclick = async () => {
-        const result = await run("realtime.subscribe", () =>
-          sdk("realtime.subscribe", { event: "achievement.unlocked" }),
-        );
-        logLine(`subscribed to achievement.unlocked: ${JSON.stringify(result)}`);
+        const eventNames = ["achievement.unlocked", "progress.updated"];
+        for (const eventName of eventNames) {
+          const result = await sdk("realtime.subscribe", { event: eventName });
+          subscriptions.add(eventName);
+          logLine(`subscribed to ${eventName}: ${JSON.stringify(result)}`);
+        }
+        renderSubscriptions();
       };
 
       document.getElementById("event").onclick = () =>
@@ -278,6 +320,14 @@
           sdk("realtime.emit", {
             event: "achievement.unlocked",
             payload: { id: "mock_start" },
+          }),
+        );
+
+      document.getElementById("event2").onclick = () =>
+        run("realtime.emit", () =>
+          sdk("realtime.emit", {
+            event: "progress.updated",
+            payload: { chapter: 1, percent: 42 },
           }),
         );
 

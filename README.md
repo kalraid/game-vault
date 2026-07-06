@@ -111,7 +111,7 @@ The built-in registry starts with the mock `lords-daughter` entry. To add more m
 
 - Game list, auth, save storage, account storage, and realtime event transport are present.
 - The mock game can exercise the portal SDK in both iframe and window launch modes and shows live state for the contract calls.
-- `realtime.subscribe` is implemented as a basic event subscription bridge, and realtime fanout is centralized in `server/realtime.ts`.
+- `realtime.subscribe` is implemented as a basic event subscription bridge, supports multiple additive subscriptions, and realtime fanout is centralized in `server/realtime.ts`.
 - Automated tests are not yet present in this checkout.
 - The external game-module contract is documented in [GAME_MODULE.md](./GAME_MODULE.md).
 
