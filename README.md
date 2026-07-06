@@ -15,6 +15,7 @@ This repository follows the `game-vault` direction and uses a browser-game porta
 - `server/` - Express API and auth/session handling
 - `shared/` - SDK message types shared by client and game code
 - `public/mock-game.html` - local mock game used to exercise the portal contract
+- `sample-game/` - reusable sample external game module entry
 - `prisma/` - Prisma schema and migrations
 - `GAME_MODULE.md` - contract guide for the external game module repository
 - `games.example.json` - sample registry override for extra game modules
@@ -98,6 +99,8 @@ SQLite data is stored in the named Docker volume `portal-data`.
 ## Game registry
 
 The built-in registry starts with the mock `lords-daughter` entry. To add more modules without changing code, provide `GAMES_JSON` as a JSON array in `.env` using the same shape as [games.example.json](./games.example.json).
+
+If you want a starting point for the separate game repository, use [sample-game/index.html](./sample-game/index.html) and [sample-game/main.ts](./sample-game/main.ts) as the reference module.
 
 ## Scripts
 

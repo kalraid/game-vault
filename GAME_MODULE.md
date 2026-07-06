@@ -87,3 +87,5 @@ The external game module should:
 
 The current repository already includes a mock game at `public/mock-game.html` that exercises the contract.
 Use it as a reference when implementing the real game module in the other repository.
+
+For a more reusable starting point, copy `sample-game/` into the external game repository and keep its SDK client shape aligned with `shared/portal-sdk-client.ts` and `shared/sdk.ts`.

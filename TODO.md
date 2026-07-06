@@ -42,6 +42,7 @@ Current implementation note:
 - [x] Expand the game registry with a configurable JSON override.
 - [x] Align the realtime flow with the eventual external game module contract.
 - [x] Remove temporary assumptions once the real game module exists.
+- [x] Add a reusable sample game module starter.
 
 Current implementation note:
 
@@ -49,6 +50,7 @@ Current implementation note:
 - The registry can now be expanded with `GAMES_JSON` without editing code.
 - Realtime fanout is now centralized in `server/realtime.ts` and covered by unit tests.
 - The mock game now demonstrates additive realtime subscriptions across multiple events.
+- `sample-game/` is a starter module that can be copied into the separate game repository.
 
 ## Notes
 
