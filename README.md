@@ -16,6 +16,7 @@ This repository follows the `game-vault` direction and uses a browser-game porta
 - `shared/` - SDK message types shared by client and game code
 - `public/mock-game.html` - local mock game used to exercise the portal contract
 - `prisma/` - Prisma schema and migrations
+- `GAME_MODULE.md` - contract guide for the external game module repository
 
 ## Current stack
 
@@ -106,6 +107,7 @@ SQLite data is stored in the named Docker volume `portal-data`.
 - The mock game can exercise the portal SDK in both iframe and window launch modes and shows live state for the contract calls.
 - `realtime.subscribe` is implemented as a basic event subscription bridge.
 - Automated tests are not yet present in this checkout.
+- The external game-module contract is documented in [GAME_MODULE.md](./GAME_MODULE.md).
 
 See [TODO.md](./TODO.md) for the current implementation backlog and order.
 
