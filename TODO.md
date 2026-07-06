@@ -16,9 +16,13 @@ Current implementation note:
 
 ## Priority 2: Add basic verification
 
-- Add tests for the portal API contract.
-- Add a small test for the mock game wiring if practical.
-- Cover the SDK bridge behavior at the boundaries we control.
+- [x] Add tests for the portal API contract.
+- [x] Add a small test for the mock game wiring if practical.
+- [x] Cover the SDK bridge behavior at the boundaries we control.
+
+Current implementation note:
+
+- Tests now cover the portal contract, the game registry, the realtime fanout helper, and the mock game wiring.
 
 ## Priority 3: Dockerize the project
 
