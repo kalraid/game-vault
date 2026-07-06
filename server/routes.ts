@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "./db.js";
 import { requireUser } from "./auth.js";
@@ -101,14 +100,14 @@ router.put("/games/:gameId/save", async (req, res) => {
     },
     update: {
       schemaVersion: parsed.data.schema_version,
-      data: toPrismaJson(parsed.data.data)
+      data: parsed.data.data as never
     },
     create: {
       userId: req.user!.id,
       gameId: game.id,
       slot: parsed.data.slot,
       schemaVersion: parsed.data.schema_version,
-      data: toPrismaJson(parsed.data.data)
+      data: parsed.data.data as never
     }
   });
 
@@ -116,17 +115,18 @@ router.put("/games/:gameId/save", async (req, res) => {
 });
 
 router.get("/account", async (req, res) => {
-  const rows = await prisma.accountData.findMany({
+  const rows: Array<{
+    key: string;
+    schemaVersion: number;
+    value: unknown;
+  }> = await prisma.accountData.findMany({
     where: { userId: req.user!.id },
     orderBy: { key: "asc" }
   });
-  const account = rows.reduce<Record<string, { schema_version: number; value: unknown }>>(
-    (acc, row) => {
-      acc[row.key] = { schema_version: row.schemaVersion, value: row.value };
-      return acc;
-    },
-    {}
-  );
+  const account: Record<string, { schema_version: number; value: unknown }> = {};
+  for (const row of rows) {
+    account[row.key] = { schema_version: row.schemaVersion, value: row.value };
+  }
   res.json(account);
 });
 
@@ -146,13 +146,13 @@ router.put("/account", async (req, res) => {
     },
     update: {
       schemaVersion: parsed.data.schema_version,
-      value: toPrismaJson(parsed.data.value)
+      value: parsed.data.value as never
     },
     create: {
       userId: req.user!.id,
       key: parsed.data.key,
       schemaVersion: parsed.data.schema_version,
-      value: toPrismaJson(parsed.data.value)
+      value: parsed.data.value as never
     }
   });
 
@@ -172,11 +172,15 @@ router.post("/games/:gameId/realtime", async (req, res) => {
       userId: req.user!.id,
       gameId: req.params.gameId,
       event: parsed.data.event,
-      payload: toPrismaJson(parsed.data.payload)
+      payload: parsed.data.payload as never
     }
   });
 
-  req.app.get("io")?.to(req.user!.id).emit(parsed.data.event, parsed.data.payload);
+  req.app.get("io")?.to(req.user!.id).emit("gamevault:realtime-event", {
+    gameId: req.params.gameId,
+    event: parsed.data.event,
+    payload: parsed.data.payload
+  });
   res.json({ id: event.id, event: event.event, payload: event.payload });
 });
 
@@ -191,10 +195,6 @@ async function ensureGame(gameId: string) {
       launchUrl: `/mock-game.html?gameId=${encodeURIComponent(gameId)}`
     }
   });
-}
-
-function toPrismaJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
-  return value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
 }
 
 export { router };

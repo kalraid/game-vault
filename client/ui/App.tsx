@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { io, type Socket } from "socket.io-client";
 import type { JsonValue, SdkRequest, SdkResponse } from "../../shared/sdk";
 
 type Game = {
@@ -10,6 +11,34 @@ type Game = {
 };
 
 const apiBase = "";
+const realtimeEventName = "gamevault:realtime-event";
+
+type AuthContext = {
+  token: string;
+  user: {
+    id: string;
+    email: string;
+  };
+};
+
+type RealtimeEnvelope = {
+  gameId: string;
+  event: string;
+  payload: JsonValue;
+};
+
+type RealtimeTarget = {
+  source: WindowProxy;
+  origin: string;
+};
+
+const realtimeSubscriptions = new Map<
+  string,
+  Map<string, Map<WindowProxy, RealtimeTarget>>
+>();
+let realtimeSocket: Socket | null = null;
+let realtimeSocketUserId: string | null = null;
+let realtimeSocketReady: Promise<Socket> | null = null;
 
 export function App() {
   const [games, setGames] = useState<Game[]>([]);
@@ -28,8 +57,14 @@ export function App() {
       const request = event.data;
       if (!request || request.type !== "gamevault:sdk-request") return;
 
-      const response = await handleSdkRequest(request);
-      event.source?.postMessage(response, { targetOrigin: event.origin || "*" });
+      const source = event.source;
+      if (!source || typeof (source as WindowProxy).postMessage !== "function") return;
+
+      const response = await handleSdkRequest(request, {
+        source: source as WindowProxy,
+        origin: event.origin || "*"
+      });
+      source.postMessage(response, { targetOrigin: event.origin || "*" });
     };
 
     window.addEventListener("message", onMessage);
@@ -98,9 +133,12 @@ export function App() {
   );
 }
 
-async function handleSdkRequest(request: SdkRequest): Promise<SdkResponse> {
+async function handleSdkRequest(
+  request: SdkRequest,
+  context: RealtimeTarget,
+): Promise<SdkResponse> {
   try {
-    const result = await callPortalApi(request);
+    const result = await callPortalApi(request, context);
     return { type: "gamevault:sdk-response", requestId: request.requestId, ok: true, result };
   } catch (error) {
     return {
@@ -112,10 +150,10 @@ async function handleSdkRequest(request: SdkRequest): Promise<SdkResponse> {
   }
 }
 
-async function callPortalApi(request: SdkRequest): Promise<JsonValue> {
+async function callPortalApi(request: SdkRequest, context: RealtimeTarget): Promise<JsonValue> {
   switch (request.method) {
     case "auth.getToken": {
-      return fetchJson("/api/auth/token");
+      return fetchJson<AuthContext>("/api/auth/token");
     }
     case "save.load": {
       const slot = Number((request.payload as { slot?: number })?.slot || 0);
@@ -139,7 +177,13 @@ async function callPortalApi(request: SdkRequest): Promise<JsonValue> {
       });
     }
     case "realtime.subscribe": {
-      return { subscribed: true };
+      const eventName = parseRealtimeEventName(request.payload);
+      if (!eventName) {
+        throw new Error("Expected realtime.subscribe payload to include an event name");
+      }
+      await ensureRealtimeSocket();
+      registerRealtimeSubscription(request.gameId, eventName, context);
+      return { subscribed: true, event: eventName };
     }
     case "realtime.emit": {
       return fetchJson(`/api/games/${request.gameId}/realtime`, {
@@ -153,11 +197,96 @@ async function callPortalApi(request: SdkRequest): Promise<JsonValue> {
   }
 }
 
-async function fetchJson(url: string, init?: RequestInit): Promise<JsonValue> {
+async function fetchJson<T extends JsonValue = JsonValue>(
+  url: string,
+  init?: RequestInit,
+): Promise<T> {
   const response = await fetch(url, init);
   const body = await response.json();
   if (!response.ok) {
     throw new Error(typeof body?.error === "string" ? body.error : "Request failed");
   }
-  return body;
+  return body as T;
+}
+
+function parseRealtimeEventName(payload: JsonValue | undefined): string | null {
+  if (typeof payload === "string" && payload.trim()) {
+    return payload.trim();
+  }
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    const event = (payload as { event?: unknown }).event;
+    if (typeof event === "string" && event.trim()) {
+      return event.trim();
+    }
+  }
+  return null;
+}
+
+function registerRealtimeSubscription(
+  gameId: string,
+  eventName: string,
+  target: RealtimeTarget,
+) {
+  let gameSubscriptions = realtimeSubscriptions.get(gameId);
+  if (!gameSubscriptions) {
+    gameSubscriptions = new Map();
+    realtimeSubscriptions.set(gameId, gameSubscriptions);
+  }
+
+  let eventSubscriptions = gameSubscriptions.get(eventName);
+  if (!eventSubscriptions) {
+    eventSubscriptions = new Map();
+    gameSubscriptions.set(eventName, eventSubscriptions);
+  }
+
+  eventSubscriptions.set(target.source, target);
+}
+
+async function ensureRealtimeSocket(): Promise<Socket> {
+  if (realtimeSocketReady) {
+    return realtimeSocketReady;
+  }
+
+  realtimeSocketReady = (async () => {
+    const auth = await fetchJson<AuthContext>("/api/auth/token");
+    if (realtimeSocket && realtimeSocketUserId === auth.user.id) {
+      return realtimeSocket;
+    }
+
+    realtimeSocket?.disconnect();
+    realtimeSocketUserId = auth.user.id;
+    realtimeSocket = io("/", {
+      auth: { userId: auth.user.id },
+      transports: ["websocket"]
+    });
+    realtimeSocket.on(realtimeEventName, deliverRealtimeEvent);
+    return realtimeSocket;
+  })();
+
+  try {
+    return await realtimeSocketReady;
+  } catch (error) {
+    realtimeSocketReady = null;
+    throw error;
+  }
+}
+
+function deliverRealtimeEvent(envelope: RealtimeEnvelope) {
+  const gameSubscriptions = realtimeSubscriptions.get(envelope.gameId);
+  const eventSubscriptions = gameSubscriptions?.get(envelope.event);
+  if (!eventSubscriptions) return;
+
+  const message = {
+    type: realtimeEventName,
+    event: envelope.event,
+    payload: envelope.payload
+  };
+
+  for (const target of eventSubscriptions.values()) {
+    try {
+      target.source.postMessage(message, target.origin);
+    } catch {
+      eventSubscriptions.delete(target.source);
+    }
+  }
 }
