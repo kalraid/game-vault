@@ -73,6 +73,8 @@ Default local ports:
 - portal UI: `http://localhost:5173`
 - mock game: `http://localhost:5500`
 
+`npm run dev` now performs a local DB bootstrap first (`prisma generate` + `prisma db push`) so the portal starts cleanly on a fresh checkout.
+
 ## Scripts
 
 - `npm run dev` - start client and server
@@ -84,9 +86,11 @@ Default local ports:
 ## Current status
 
 - Game list, auth, save storage, account storage, and realtime event transport are present.
-- The mock game can exercise the portal SDK in both iframe and window launch modes.
+- The mock game can exercise the portal SDK in both iframe and window launch modes and shows live state for the contract calls.
 - `realtime.subscribe` is implemented as a basic event subscription bridge.
 - Automated tests are not yet present in this checkout.
+
+See [TODO.md](./TODO.md) for the current implementation backlog and order.
 
 ## Remaining work
 
