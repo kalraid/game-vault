@@ -18,6 +18,7 @@ This repository follows the `game-vault` direction and uses a browser-game porta
 - `prisma/` - Prisma schema and migrations
 - `GAME_MODULE.md` - contract guide for the external game module repository
 - `games.example.json` - sample registry override for extra game modules
+- `server/realtime.ts` - explicit realtime fanout helper used by the portal
 
 ## Current stack
 
@@ -110,7 +111,7 @@ The built-in registry starts with the mock `lords-daughter` entry. To add more m
 
 - Game list, auth, save storage, account storage, and realtime event transport are present.
 - The mock game can exercise the portal SDK in both iframe and window launch modes and shows live state for the contract calls.
-- `realtime.subscribe` is implemented as a basic event subscription bridge.
+- `realtime.subscribe` is implemented as a basic event subscription bridge, and realtime fanout is centralized in `server/realtime.ts`.
 - Automated tests are not yet present in this checkout.
 - The external game-module contract is documented in [GAME_MODULE.md](./GAME_MODULE.md).
 

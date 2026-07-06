@@ -72,7 +72,7 @@ The external game module should:
 - `gameId` is stable for a given launched game instance.
 - `save.store` and `account.set` accept opaque JSON-compatible values.
 - `realtime.subscribe` is currently event-name based.
-- `realtime.emit` will be persisted by the portal and forwarded back to subscribers.
+- `realtime.emit` will be persisted by the portal and forwarded back to subscribers in the current user room.
 - The portal mock game is intentionally temporary and exists only to validate this contract.
 
 ## What the game must not assume

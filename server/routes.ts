@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "./db.js";
 import { requireUser } from "./auth.js";
 import { getGame, listGames } from "./games.js";
+import { emitRealtimeEvent } from "./realtime.js";
 
 const router = Router();
 
@@ -184,7 +185,7 @@ router.post("/games/:gameId/realtime", async (req, res) => {
     }
   });
 
-  req.app.get("io")?.to(req.user!.id).emit("gamevault:realtime-event", {
+  emitRealtimeEvent(req.app.get("io"), req.user!.id, {
     gameId: req.params.gameId,
     event: parsed.data.event,
     payload: parsed.data.payload
