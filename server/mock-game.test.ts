@@ -15,6 +15,6 @@ describe("mock game wiring", () => {
     expect(html).toContain('id="subscribe">subscribe all</button>');
     expect(html).toContain('id="event2">emit progress</button>');
     expect(html).toContain('sdk("realtime.subscribe", { event: eventName })');
-    expect(html).toContain('sdk("realtime.emit", {\n            event: "progress.updated"');
+    expect(html).toMatch(/sdk\("realtime\.emit",\s*\{\s*event:\s*"progress\.updated"/);
   });
 });
