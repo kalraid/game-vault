@@ -61,4 +61,19 @@ describe("game registry", () => {
     ]);
     expect(games.isKnownGame("beta")).toBe(true);
   });
+
+  it("falls back to the built-in registry when GAMES_JSON parses but every entry is invalid", async () => {
+    vi.stubEnv("GAMES_JSON", JSON.stringify([{ title: "Missing id and iframeUrl" }]));
+
+    const games = await import("./games.js");
+    expect(games.listGames()).toEqual([
+      {
+        id: "lords-daughter",
+        title: "Lord's Daughter",
+        description: "Mock integration target for the GameVault portal SDK.",
+        iframeUrl: "/mock-game.html?gameId=lords-daughter",
+        launchUrl: "/mock-game.html?gameId=lords-daughter",
+      },
+    ]);
+  });
 });

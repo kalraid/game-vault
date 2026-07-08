@@ -25,9 +25,12 @@ function loadGames(): Game[] {
     try {
       const parsed = JSON.parse(raw) as unknown;
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
+        const normalized = parsed
           .map(normalizeGame)
           .filter((game): game is Game => game !== null);
+        if (normalized.length > 0) {
+          return normalized;
+        }
       }
     } catch {
       // Fall back to built-in defaults when the override is malformed.

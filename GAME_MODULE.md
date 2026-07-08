@@ -82,6 +82,7 @@ The external game module should:
 - Do not assume local file save access.
 - Do not assume realtime events are delivered unless the game subscribed to them.
 - Do not assume the portal uses the same launch origin in iframe and new-window mode.
+- Do not assume the portal tab/window that launched you stays open. Every SDK call is `postMessage`'d to `window.opener || window.parent` — the game never calls `/api` directly — so in new-window mode, if the player closes the original portal tab, `window.opener` becomes `null` and all further SDK calls (including saves) will fail.
 
 ## Local development note
 

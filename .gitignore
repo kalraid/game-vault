@@ -7,3 +7,5 @@ prisma/dev.db-journal
 .server.*.log
 .dev-server.log
 coverage/
+playwright-report/
+test-results/
