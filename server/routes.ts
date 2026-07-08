@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "./db.js";
-import { requireUser } from "./auth.js";
+import { promoteGuest, requireUser } from "./auth.js";
 import { getGame, listGames } from "./games.js";
 import { emitRealtimeEvent } from "./realtime.js";
 
@@ -48,6 +48,8 @@ router.post("/games/seed", async (_req, res) => {
   }
   res.json(seeded);
 });
+
+router.post("/auth/promote-guest", promoteGuest);
 
 router.use(requireUser);
 

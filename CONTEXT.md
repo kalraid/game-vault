@@ -36,10 +36,10 @@ _Avoid_: Profile, global state, per-game data
 A named event a game module publishes or subscribes to through the portal, fanned out **per account** (every open portal session for that user, across tabs/windows/devices), not per browser tab and not broadcast to other users. A subscription in one tab can receive an event emitted from the same game in another tab of the same account — that's deliberate cross-session sync, not a leak.
 _Avoid_: Message, notification, per-tab event, per-session event
 
-**Guest session** (planned — see ADR-0002):
+**Guest session** (see ADR-0002):
 An unauthenticated identity the portal issues automatically so a player can use the full SDK contract (save, account data, realtime) without logging in first. Backed by the same `User`/`GameSave`/`AccountData` rows as a logged-in account — a guest is not a second-class storage tier, just an account nobody has claimed with a login yet.
 _Avoid_: Anonymous user, temp account
 
-**Promotion** (planned — see ADR-0002):
+**Promotion** (see ADR-0002):
 The one-time act of attaching a guest session's data to a login the first time that guest signs in. Only happens when the logging-in account has no prior data of its own; if it already has data, the guest session's data is discarded rather than merged.
 _Avoid_: Migration, merge, claim

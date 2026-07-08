@@ -22,11 +22,14 @@ const mocks = vi.hoisted(() => {
 
   const emit = vi.fn();
   const requireUser = vi.fn((req: any, _res: any, next: () => void) => {
-    req.user = { id: "user-1", email: "dev@example.com" };
+    req.user = { id: "user-1", email: "dev@example.com", isGuest: false };
     next();
   });
+  const promoteGuest = vi.fn((_req: any, res: any) => {
+    res.json({ promoted: false, reason: "no-guest-session" });
+  });
 
-  return { prisma, emit, requireUser };
+  return { prisma, emit, requireUser, promoteGuest };
 });
 
 vi.mock("./db.js", () => ({
@@ -35,6 +38,7 @@ vi.mock("./db.js", () => ({
 
 vi.mock("./auth.js", () => ({
   requireUser: mocks.requireUser,
+  promoteGuest: mocks.promoteGuest,
 }));
 
 import { router } from "./routes.js";

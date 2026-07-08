@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { io, type Socket } from "socket.io-client";
 import type { JsonValue, SdkRequest, SdkResponse } from "../../shared/sdk";
 
@@ -15,11 +15,18 @@ const realtimeEventName = "gamevault:realtime-event";
 
 type AuthContext = {
   token: string;
-  user: {
-    id: string;
-    email: string;
-  };
+  user: Identity;
 };
+
+type Identity = {
+  id: string;
+  email: string | null;
+  isGuest: boolean;
+};
+
+type PromoteGuestResult =
+  | { promoted: true }
+  | { promoted: false; reason: "existing-data" | "no-guest-session" };
 
 type RealtimeEnvelope = {
   gameId: string;
@@ -48,9 +55,91 @@ export function App() {
     [games, selectedGameId]
   );
 
+  const [identity, setIdentity] = useState<Identity | null>(null);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginName, setLoginName] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [gameFrameNonce, setGameFrameNonce] = useState(0);
+
   useEffect(() => {
     seedAndLoadGames();
+    refreshIdentity();
   }, []);
+
+  async function refreshIdentity() {
+    try {
+      const auth = await fetchJson<AuthContext>("/api/auth/token");
+      setIdentity(auth.user);
+    } catch {
+      setIdentity(null);
+    }
+  }
+
+  async function handleSignIn(event: FormEvent) {
+    event.preventDefault();
+    if (!loginEmail.trim() || authBusy) return;
+
+    setAuthBusy(true);
+    setAuthMessage(null);
+    try {
+      const csrf = await fetchJson<{ csrfToken: string }>("/auth/csrf");
+      const body = new URLSearchParams({
+        csrfToken: csrf.csrfToken,
+        email: loginEmail.trim(),
+        name: loginName.trim() || loginEmail.trim(),
+        callbackUrl: window.location.href
+      });
+      await fetch("/auth/callback/credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+        credentials: "include"
+      });
+
+      const promotion = await fetchJson<PromoteGuestResult>("/api/auth/promote-guest", {
+        method: "POST",
+        credentials: "include"
+      });
+
+      await refreshIdentity();
+      setGameFrameNonce((n) => n + 1);
+      setLoginEmail("");
+      setLoginName("");
+      setAuthMessage(describePromotion(promotion));
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : "Sign-in failed");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleSignOut() {
+    if (authBusy) return;
+    setAuthBusy(true);
+    setAuthMessage(null);
+    try {
+      const csrf = await fetchJson<{ csrfToken: string }>("/auth/csrf");
+      const body = new URLSearchParams({
+        csrfToken: csrf.csrfToken,
+        callbackUrl: window.location.href
+      });
+      await fetch("/auth/signout", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+        credentials: "include"
+      });
+
+      await refreshIdentity();
+      setGameFrameNonce((n) => n + 1);
+      setAuthMessage("Signed out.");
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : "Sign-out failed");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
 
   useEffect(() => {
     const onMessage = async (event: MessageEvent<SdkRequest>) => {
@@ -103,6 +192,44 @@ export function App() {
             </button>
           ))}
         </nav>
+
+        <div className="account-panel">
+          <p className="eyebrow">Account</p>
+          <p className="account-status">
+            {identity
+              ? identity.isGuest
+                ? "Playing as guest"
+                : `Signed in as ${identity.email}`
+              : "Loading identity..."}
+          </p>
+
+          {identity && !identity.isGuest ? (
+            <button type="button" onClick={handleSignOut} disabled={authBusy}>
+              Sign out
+            </button>
+          ) : (
+            <form className="login-form" onSubmit={handleSignIn}>
+              <input
+                type="email"
+                placeholder="Email"
+                value={loginEmail}
+                onChange={(event) => setLoginEmail(event.target.value)}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Display name"
+                value={loginName}
+                onChange={(event) => setLoginName(event.target.value)}
+              />
+              <button type="submit" disabled={authBusy}>
+                Sign in
+              </button>
+            </form>
+          )}
+
+          {authMessage ? <p className="account-message">{authMessage}</p> : null}
+        </div>
       </aside>
 
       <section className="workspace">
@@ -119,7 +246,7 @@ export function App() {
         <div className="game-frame-wrap">
           {selectedGame ? (
             <iframe
-              key={selectedGame.id}
+              key={`${selectedGame.id}-${gameFrameNonce}`}
               title={selectedGame.title}
               src={selectedGame.iframeUrl}
               sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
@@ -131,6 +258,16 @@ export function App() {
       </section>
     </main>
   );
+}
+
+function describePromotion(result: PromoteGuestResult): string {
+  if (result.promoted) {
+    return "Signed in — your guest progress was kept.";
+  }
+  if (result.reason === "existing-data") {
+    return "Signed in — this account already had saved progress, so the guest session's data was discarded.";
+  }
+  return "Signed in.";
 }
 
 async function handleSdkRequest(
@@ -255,11 +392,16 @@ async function ensureRealtimeSocket(): Promise<Socket> {
 
     realtimeSocket?.disconnect();
     realtimeSocketUserId = auth.user.id;
-    realtimeSocket = io("/", {
+    const socket = io("/", {
       auth: { userId: auth.user.id },
       transports: ["websocket"]
     });
-    realtimeSocket.on(realtimeEventName, deliverRealtimeEvent);
+    socket.on(realtimeEventName, deliverRealtimeEvent);
+    await new Promise<void>((resolve, reject) => {
+      socket.once("connect", () => resolve());
+      socket.once("connect_error", reject);
+    });
+    realtimeSocket = socket;
     return realtimeSocket;
   })();
 

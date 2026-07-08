@@ -33,7 +33,7 @@ The current iframe uses `sandbox="allow-scripts allow-forms allow-popups allow-s
 
 ## Consciously temporary (not final decisions)
 
-- **Auth**: Auth.js Credentials provider is wired server-side (`server/auth.ts`) but has no client UI reaching it, and the `/api/*` gate (`requireUser`) doesn't check that session at all — it resolves every request to one hardcoded `dev@example.com` user via an `x-dev-user` header the client never sends. In effect there is currently a single shared account, not per-browser dev logins. A real design (guest-by-default identity, login as an additive promotion rather than a hard requirement) is decided in [ADR-0002](./0002-guest-sessions-and-login-promotion.md), not yet implemented.
+- **Auth**: Guest-by-default identity with login-as-promotion is now implemented per [ADR-0002](./0002-guest-sessions-and-login-promotion.md) — `requireUser` resolves a real Auth.js session first, falling back to a server-issued guest cookie, and `client/ui/App.tsx` has a minimal login UI reaching `ExpressAuth`'s routes. Auth *strength* is still dev-only (Credentials provider, email + display name, no password) — that part remains consciously temporary.
 - **Persistence engine**: SQLite via Prisma, including in the Docker deployment path (`docker-compose.yml`'s `portal-data` volume). This assumes a single-instance deployment; a move to a networked DB (e.g. Postgres) if GameVault needs to scale out is unresolved.
 
 ## Open questions
